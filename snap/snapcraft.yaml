@@ -1,0 +1,245 @@
+name: wayland
+# title:
+type: app
+version: '1.20.6-0dev2' # TODO: use git
+summary: Xwayland X server
+description: |
+  This package provides an X server running on top of wayland, using wayland input devices for input and forwarding either the root window or individual top-level windows as wayland surfaces.
+
+base: core18
+grade: stable
+confinement: strict
+
+apps:
+  Xwayland:
+    command: usr/bin/Xwayland
+    adapter: none
+  setxkbmap:
+    command: usr/bin/setxkbmap
+    adapter: none
+  xkbcomp:
+    command: usr/bin/xkbcomp
+    adapter: none
+  xkbprint:
+    command: usr/bin/xkbprint
+
+
+slots:
+  libglvnd:
+    interface: content
+    source:
+      read:
+        - $SNAP/usr # TODO: /....
+
+  xwayland:
+    interface: content
+    source:
+      read:
+        - $SNAP/usr # TODO: /....
+
+
+build-packages:
+  - cmake # meson likes cmake
+  - ctags # meson
+  - pkgconf
+  - quilt
+
+parts:
+  wayland:
+    plugin: nil
+    stage-packages:
+      - libwayland-egl1 # | libwayland-egl1-mesa
+      - libwayland-client0
+      - libwayland-cursor0
+      - libwayland-server0
+
+  wayland-protocols:
+    source: https://gitlab.freedesktop.org/wayland/wayland-protocols.git
+    source-tag: '1.18'
+    source-depth: 1
+    plugin: autotools
+    configflags: [ --prefix=/usr ]
+    build-packages:
+      - libwayland-bin
+
+  libglvnd: # TODO: maybe this could be used earlier for other packages ...
+    ## TODO: this is libgl1, libglx0 and libglvnd0
+    plugin: autotools
+    source: https://github.com/NVIDIA/libglvnd.git
+    source-tag: v1.2.0
+    configflags:
+      - --prefix=/usr
+    build-packages:
+      - libx11-dev
+      - libxext-dev
+    stage-packages:
+      - libx11-6
+      - libxau6
+      - libxcb1
+      - libxdmcp6
+
+      # - python-dev
+      # - python-libxml2
+      # - x11proto-gl-dev
+      # - xauth
+      # - xvfb
+
+  xwayland:
+    after: [ libglvnd, wayland-protocols ]
+    plugin: meson
+    source: https://gitlab.freedesktop.org/xorg/xserver.git
+    source-tag: xorg-server-1.20.6
+    build-environment:
+      - CFLAGS: "-DDEBUG"
+      - CPPFLAGS: "-DDEBUG"
+    meson-parameters:
+      - --prefix=/usr
+      - --buildtype=debug
+      # - --udev=true
+
+      - -Dxkb_dir=/snap/sway/current/usr/share/X11/xkb
+      - -Dxkb-output_dir=/tmp/X11/xkb/compiled # FIXME: find better place ! orignal is share/X11/xkb/compiled
+      - -Dxorg=false
+      - -Dxephyr=false
+      - -Dxwayland=true
+      - -Dglamor=true
+      - -Dxwayland_eglstream=false # TODO:
+      - -Dxnest=false
+      - -Ddmx=false
+      - -Dxvfb=false
+      - -Dxwin=false
+      #
+      - -Dxdmcp=false
+      # - -Dxdm-auth-1=true
+      # - -Dsecure-rpc=true
+      # - -Dipv6=auto
+      # ...
+      - -Dhal=false # FIXME: is too old ?
+      # ...
+      - -Dscreensaver=false
+      # ...
+      ## TODO: FIXME: more options ?
+    build-packages:
+      - libudev-dev
+      - libxcb1-dev
+      - libxcb-composite0-dev
+      - libxcb-icccm4-dev
+      - libxcb-image0-dev
+      - libxcb-render0-dev
+      - libxcb-xfixes0-dev
+      - libxcb-xinput-dev
+      - libxkbfile-dev
+      # - xkb-data
+      - libbsd-dev
+      - libpixman-1-dev
+      - libxfont-dev
+      - libdbus-1-dev
+      - libdrm-dev
+      - libepoxy-dev
+      - libgbm-dev
+      # - libtirpc-dev ## TODO: check ?
+      - nettle-dev
+
+      - libegl1-mesa-dev
+      - libgles2-mesa-dev
+      - libwayland-egl-backend-dev
+      - libwayland-dev
+
+      - x11-xkb-utils
+      - xfonts-utils
+    stage-packages:
+      - libfontenc1
+      - libxfont2
+      - libdrm2
+      - libepoxy0
+      - libgbm1
+      - libpixman-1-0
+      - libwayland-client0
+      - libwayland-server0
+      - libx11-6
+      - libxau6
+      - libxcb1
+      - libxdmcp6
+      - libxshmfence1
+    stage:
+      - -usr/share/bug
+      - -usr/share/doc
+      - -usr/share/doc-base
+      - -usr/share/man
+
+  # xcb-xkb:
+  #   plugin:
+  #   source: 
+
+  xkeyboard-config:
+    plugin: autotools
+    source: https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config.git
+    # TODO
+    configflags:
+      - --prefix=/usr
+      # - --with-xkb-base= .... # TODO
+      # - --with-xkb-rules-symlink= ... # TODO: 
+      # - --enable-compat-rules=no # TODO: default yes
+
+
+
+  libxkbcommon:
+    after: [ xkeyboard-config ]
+    plugin: meson
+    source: https://github.com/xkbcommon/libxkbcommon.git
+    meson-parameters:
+      - --prefix=/usr
+      # - -Dxkb-config-root= ... # TODO: if not found, get it from xkeyboard-config ... else use datadir/X11/xkb...
+      # - -Dx-locale-root= ... # TODO: datadir/X11/xb...
+      - -Ddefault-rules=evdev
+      - -Ddefault-layout=us
+      - -Ddefault-variant=''
+      - -Ddefault-options=''
+      - -Denable-x11=false # TODO: # INFO: needs xcb-xkb
+      - -Denable-docs=false
+      - -Denable-wayland=true
+
+
+  setxkbmap:
+    plugin: autotools
+    source: https://gitlab.freedesktop.org/xorg/app/setxkbmap.git
+    configflags: 
+    - --prefix=/usr
+    - --with-xkb-config-root=/snap/xwayland/current/usr/share/X11/xkb
+    build-packages:
+      - libx11-dev
+      - libxkbfile-dev
+      - xutils-dev
+    stage-packages:
+      - libxkbfile1
+
+
+  xkbcomp:
+    plugin: autotools
+    source: https://gitlab.freedesktop.org/xorg/app/xkbcomp.git
+    configflags: 
+      - --prefix=/usr
+      - --with-xkb-config-root=/snap/xwayland/current/usr/share/X11/xkb
+    build-packages:
+      - libx11-dev
+      - libxkbfile-dev
+      - bison
+    stage-packages:
+      - libxkbfile1
+
+
+  xkbprint:
+    plugin: autotools
+    source: https://gitlab.freedesktop.org/xorg/app/xkbprint.git
+    configflags: 
+      - --prefix=/usr
+      - --with-xkb-config-root=/snap/xwayland/current/usr/share/X11/xkb
+    build-packages:
+      - libx11-dev
+      - libxkbfile-dev
+    stage-packages:
+      - libxkbfile1
+
+
+
+
