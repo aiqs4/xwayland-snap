@@ -9,7 +9,7 @@ description: |
 
 base: core18
 grade: stable
-confinement: classic
+confinement: strict
 
 
 apps:
@@ -71,6 +71,11 @@ parts:
     stage:
       - -usr/share/doc
       - -usr/share/man
+    prime:
+      - -usr/share/include ## TODO: fix pkgconfig paths here
+      - -usr/share/pkgconfig ## TODO: fix pkgconfig paths here
+      - -usr/share/lintian ## TODO: fix pkgconfig paths here
+      - -usr/share/wayland-protocols ## TODO: fix pkgconfig paths here
 
 
   libglvnd: # TODO: maybe this could be used earlier for other packages ...
@@ -87,7 +92,7 @@ parts:
       - libx11-6
       - libxau6
       - libxcb1
-      - libxdmcp6
+      - libxdmcp6 # TODO: build without classic x11 remote
 
       # - python-dev
       # - python-libxml2
@@ -163,6 +168,7 @@ parts:
       - -usr/share/man
       - -usr/share/pkgconfig
       - -usr/share/X11/xkb
+
 
   xwayland:
     after: [ libglvnd, wayland-protocols ]
