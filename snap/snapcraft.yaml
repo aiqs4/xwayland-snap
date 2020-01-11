@@ -1,14 +1,16 @@
 name: wayland
 # title:
 type: app
-version: '1.20.6-0dev2' # TODO: use git
+version: '1.20.6-0dev3' # TODO: use git
 summary: Xwayland X server
 description: |
   This package provides an X server running on top of wayland, using wayland input devices for input and forwarding either the root window or individual top-level windows as wayland surfaces.
 
+
 base: core18
 grade: stable
-confinement: strict
+confinement: classic
+
 
 apps:
   Xwayland:
@@ -44,6 +46,7 @@ build-packages:
   - pkgconf
   - quilt
 
+
 parts:
   wayland:
     plugin: nil
@@ -52,6 +55,10 @@ parts:
       - libwayland-client0
       - libwayland-cursor0
       - libwayland-server0
+    stage:
+      - -usr/share/doc
+      - -usr/share/man
+
 
   wayland-protocols:
     source: https://gitlab.freedesktop.org/wayland/wayland-protocols.git
@@ -61,6 +68,10 @@ parts:
     configflags: [ --prefix=/usr ]
     build-packages:
       - libwayland-bin
+    stage:
+      - -usr/share/doc
+      - -usr/share/man
+
 
   libglvnd: # TODO: maybe this could be used earlier for other packages ...
     ## TODO: this is libgl1, libglx0 and libglvnd0
@@ -83,6 +94,75 @@ parts:
       # - x11proto-gl-dev
       # - xauth
       # - xvfb
+    stage:
+      - -usr/share/doc
+      - -usr/share/man
+
+
+  # mesa:
+  #   plugin: nil
+  #   stage-packages:
+  #     - libegl-mesa0
+  #     - libegl1-mesa
+  #     - libgl1-mesa-dri
+  #     - libwayland-egl1-mesa
+  #     - libglu1-mesa
+  #     - mesa-va-drivers
+  #     - mesa-vdpau-drivers
+  #     - mesa-vulkan-drivers
+  #     - libglx-mesa0
+  #     - libglw1-mesa
+
+
+  egl: # TODO: check who needs what ...
+    plugin: nil
+    stage-packages:
+      - libdrm2
+
+      - libglvnd0
+      - libegl1
+      - libvdpau-va-gl1
+      # 
+      - libgl1
+      - libgl2ps1.4
+      - libglx0
+      - libgle3
+      - libgles1
+      - libgles2
+      # - libglew2.1
+
+      - libglbinding2
+
+      - libvdpau1
+      - libva-drm2
+      - vdpau-driver-all
+      - va-driver-all
+      - libxcb-dri2-0
+      - libxcb-dri3-0
+
+      #
+      - libglfw3-wayland
+      - libwayland-egl1 ## TODO: check if it's better to build or binary core20 pkg's
+      # - libwayland-egl++0 ## TODO: not found on core18
+      
+      - try:
+        - libdrm-amdgpu1
+      - try:
+        - libdrm-nouveau2
+      - try:
+        - libdrm-radeon1
+      - try:
+        - libnvidia-egl-wayland1
+      - on amd64,i386:
+        - libdrm-intel1
+    stage:
+      # - -etc/pam.d 
+      - -usr/share/doc
+      - -usr/share/include
+      - -usr/share/lintian
+      - -usr/share/man
+      - -usr/share/pkgconfig
+      - -usr/share/X11/xkb
 
   xwayland:
     after: [ libglvnd, wayland-protocols ]
@@ -97,7 +177,8 @@ parts:
       - --buildtype=debug
       # - --udev=true
 
-      - -Dxkb_dir=/snap/sway/current/usr/share/X11/xkb
+      # - -Dxkb_dir=/snap/sway/current/usr/share/X11/xkb
+      - -Dxkb_dir=/usr/share/X11/xkb
       - -Dxkb-output_dir=/tmp/X11/xkb/compiled # FIXME: find better place ! orignal is share/X11/xkb/compiled
       - -Dxorg=false
       - -Dxephyr=false
@@ -180,6 +261,9 @@ parts:
       # - --with-xkb-base= .... # TODO
       # - --with-xkb-rules-symlink= ... # TODO: 
       # - --enable-compat-rules=no # TODO: default yes
+    stage:
+      - -usr/share/doc
+      - -usr/share/man
 
 
   # TODO: better use *.deb package
@@ -205,13 +289,16 @@ parts:
     source: https://gitlab.freedesktop.org/xorg/app/setxkbmap.git
     configflags: 
     - --prefix=/usr
-    - --with-xkb-config-root=/snap/xwayland/current/usr/share/X11/xkb
+    - --with-xkb-config-root=/snap/wayland/current/usr/share/X11/xkb
     build-packages:
       - libx11-dev
       - libxkbfile-dev
       - xutils-dev
     stage-packages:
       - libxkbfile1
+    stage:
+      - -usr/share/doc
+      - -usr/share/man
 
 
   xkbcomp:
@@ -219,13 +306,16 @@ parts:
     source: https://gitlab.freedesktop.org/xorg/app/xkbcomp.git
     configflags: 
       - --prefix=/usr
-      - --with-xkb-config-root=/snap/xwayland/current/usr/share/X11/xkb
+      - --with-xkb-config-root=/snap/wayland/current/usr/share/X11/xkb
     build-packages:
       - libx11-dev
       - libxkbfile-dev
       - bison
     stage-packages:
       - libxkbfile1
+    stage:
+      - -usr/share/doc
+      - -usr/share/man
 
 
   xkbprint:
@@ -233,12 +323,15 @@ parts:
     source: https://gitlab.freedesktop.org/xorg/app/xkbprint.git
     configflags: 
       - --prefix=/usr
-      - --with-xkb-config-root=/snap/xwayland/current/usr/share/X11/xkb
+      - --with-xkb-config-root=/snap/wayland/current/usr/share/X11/xkb
     build-packages:
       - libx11-dev
       - libxkbfile-dev
     stage-packages:
       - libxkbfile1
+    stage:
+      - -usr/share/doc
+      - -usr/share/man
 
 
 
